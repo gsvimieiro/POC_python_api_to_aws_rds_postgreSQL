@@ -9,48 +9,8 @@ from model import Coins
 from requests import Request, Session
 from datetime import datetime
 import pandas as pd
-
-def check_if_valid_data(df: pd.DataFrame) -> bool:
-    
-    # Check if dataframe is empty
-    if df.empty:
-        print("\nDataframe empty. Finishing execution")
-        return False 
-
-    # Check for nulls
-    if df.symbol.empty:
-        raise Exception("\nSymbol is Null or the value is empty")
- 
-     # Check for nulls
-    if df.price.empty:
-        raise Exception("\nPrice is Null or the value is empty")
-
-    # Check for nulls
-    if df.data_added.empty:
-        raise Exception("\nData is Null or the value is empty")
-
-    return True
-    
-def load_data(table_name, coins_df, session_db, engine_db):
-    
-    # validate
-    if check_if_valid_data(coins_df):
-        print("\nData valid, proceed to Load stage")
-    
-    # load data on database
-    try:
-        coins_df.to_sql(table_name, engine_db, index=False, if_exists='append')
-        print ('\nData Loaded on Database')
-
-    except:
-        print("\nFail to load data on database")
-
-    session_db.commit()
-    session_db.close()
-    print("\nClose database successfully")
-    return session_db
-
-def get_data(session_db, engine_db, start, limit, convert, key, url):
+  
+def get_data(start, limit, convert, key, url):
     
     # set limit of data from api
     parameters = {
@@ -104,9 +64,47 @@ def get_data(session_db, engine_db, start, limit, convert, key, url):
     coins_df = pd.DataFrame(coin_dict, columns = ["name", "symbol", "data_added", "last_updated","price","volume_24h"])
     print ("Data on Pandas Dataframe:\n")
     print(coins_df.head())
+    return coins_df
+
+def load_data(table_name, coins_df, session_db, engine_db):
     
-    # call the function to load data on database
-    load_data('Coins',coins_df, session_db, engine_db)
+    # validate
+    if check_if_valid_data(coins_df):
+        print("\nData valid, proceed to Load stage")
+    
+    # load data on database
+    try:
+        coins_df.to_sql(table_name, engine_db, index=False, if_exists='append')
+        print ('\nData Loaded on Database')
+
+    except:
+        print("\nFail to load data on database")
+
+    session_db.commit()
+    session_db.close()
+    print("\nClose database successfully")
+    return session_db
+
+def check_if_valid_data(df: pd.DataFrame) -> bool:
+    
+    # Check if dataframe is empty
+    if df.empty:
+        print("\nDataframe empty. Finishing execution")
+        return False 
+
+    # Check for nulls
+    if df.symbol.empty:
+        raise Exception("\nSymbol is Null or the value is empty")
+ 
+     # Check for nulls
+    if df.price.empty:
+        raise Exception("\nPrice is Null or the value is empty")
+
+    # Check for nulls
+    if df.data_added.empty:
+        raise Exception("\nData is Null or the value is empty")
+
+    return True
 
 # Declaration base
 Base = declarative_base()
@@ -115,10 +113,11 @@ Base = declarative_base()
 get_session_db, get_engine = Coins.start()
 
 # call the get_data function and load data on database
-get_data(get_session_db,
-         get_engine,
-         '1',
+coins_df = get_data('1',
          '500',
          'USD',
          '7bdc01a6-f004-4c0b-b21c-1c1d3970352f',
          'https://pro-api.coinmarketcap.com/v1/cryptocurrency/listings/latest')
+
+# call the function to load data on database
+load_data('Coins',coins_df, session_db, engine_db)
